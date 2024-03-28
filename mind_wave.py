@@ -18,7 +18,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-import openai
 import queue
 import threading
 import traceback
@@ -26,7 +25,8 @@ import os
 import sys
 from epc.server import ThreadingEPCServer
 from functools import wraps
-from utils import (get_command_result, get_emacs_var, get_emacs_vars, init_epc_client, eval_in_emacs, logger, close_epc_client, message_emacs, string_to_base64, decode_text)
+from openai import OpenAI
+from utils import (get_command_result, get_emacs_var, init_epc_client, eval_in_emacs, logger, close_epc_client, message_emacs, string_to_base64, decode_text)
 
 def catch_exception(func):
     @wraps(func)
@@ -56,12 +56,11 @@ class MindWave:
         # self.server.logger.setLevel(logging.DEBUG)
         self.server.allow_reuse_address = True
 
-        # Get API key.
-        api_key = self.chat_get_api_key()
-        if api_key is not None:
-            openai.api_key = api_key
-
-        openai.base_url, openai.api_type, openai.api_version = get_emacs_vars(["mind-wave-api-base", "mind-wave-api-type", "mind-wave-api-version"])
+        # Build OpenAI client.
+        self.client = OpenAI(
+            api_key=self.chat_get_api_key(),
+            base_url=get_emacs_var("mind-wave-api-base")
+        )
 
         self.server.register_instance(self)  # register instance functions let elisp side call
 
@@ -112,14 +111,9 @@ class MindWave:
 
     @catch_exception
     def send_completion_request(self, messages, model="gpt-3.5-turbo"):
-        if openai.api_type == 'azure':
-            response = openai.chat.completions.create(
-                engine = model,
-                messages = messages)
-        else:
-            response = openai.chat.completions.create(
-                model = model,
-                messages = messages)
+        response = self.client.chat.completions.create(
+            model = model,
+            messages = messages)
 
         result = ''
         for choice in response.choices:
@@ -129,18 +123,11 @@ class MindWave:
 
     @catch_exception
     def send_stream_request(self, messages, callback, model="gpt-3.5-turbo"):
-        if openai.api_type == 'azure':
-            response = openai.chat.completions.create(
-                engine=model,
-                messages=messages,
-                temperature=0,
-                stream=True)
-        else:
-            response = openai.chat.completions.create(
-                model=model,
-                messages=messages,
-                temperature=0,
-                stream=True)
+        response = self.client.chat.completions.create(
+            model=model,
+            messages=messages,
+            temperature=0,
+            stream=True)
 
         for chunk in response:
             (result_type, result_content) = self.get_chunk_result(chunk)
@@ -351,18 +338,11 @@ class MindWave:
                     {"role": "user", "content": f"{prompt}： \n{text}"}]
 
         try:
-            if openai.api_type == 'azure':
-                response = openai.chat.completions.create(
-                    engine = "gpt-3.5-turbo",
-                    messages = messages,
-                    temperature=0,
-                    stream=True)
-            else:
-                response = openai.chat.completions.create(
-                    model = "gpt-3.5-turbo",
-                    messages = messages,
-                    temperature=0,
-                    stream=True)
+            response = self.client.chat.completions.create(
+                model = "gpt-3.5-turbo",
+                messages = messages,
+                temperature=0,
+                stream=True)
 
             for chunk in response:
                 (result_type, result_content) = self.get_chunk_result(chunk)

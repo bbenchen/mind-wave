@@ -103,16 +103,6 @@
   :type 'string
   :group 'mind-wave)
 
-(defcustom mind-wave-api-type "open_ai"
-  "OpenAI API type"
-  :type 'string
-  :group 'mind-wave)
-
-(defcustom mind-wave-api-version ""
-  "OpenAI API version"
-  :type 'string
-  :group 'mind-wave)
-
 (defcustom mind-wave-translate-role "You are an English Translator."
   "Role for translate."
   :type 'string
