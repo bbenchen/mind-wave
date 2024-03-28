@@ -98,7 +98,7 @@
   :type 'string
   :group 'mind-wave)
 
-(defcustom mind-wave-api-base "https://api.openai.com/v1"
+(defcustom mind-wave-api-base "https://api.openai.com/v1/"
   "OpenAI API base url"
   :type 'string
   :group 'mind-wave)
@@ -937,7 +937,7 @@ Your task is to summarize the text I give you in up to seven concise  bulletpoin
 (defun mind-wave-change-model ()
   (interactive)
   (if (string-equal (file-name-extension (buffer-file-name)) "chat")
-      (let ((model (completing-read "Choose model : " '("gpt-3.5-turbo" "gpt-4" "gpt-4-32k"))))
+      (let ((model (completing-read "Choose model : " '("gpt-3.5-turbo" "gpt-4" "gpt-4-turbo-preview"))))
         (save-excursion
           (goto-char (point-min))
           (if (search-forward-regexp "# : " nil t)

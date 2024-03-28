@@ -61,7 +61,7 @@ class MindWave:
         if api_key is not None:
             openai.api_key = api_key
 
-        openai.api_base, openai.api_type, openai.api_version = get_emacs_vars(["mind-wave-api-base", "mind-wave-api-type", "mind-wave-api-version"])
+        openai.base_url, openai.api_type, openai.api_version = get_emacs_vars(["mind-wave-api-base", "mind-wave-api-type", "mind-wave-api-version"])
 
         self.server.register_instance(self)  # register instance functions let elisp side call
 
@@ -113,11 +113,11 @@ class MindWave:
     @catch_exception
     def send_completion_request(self, messages, model="gpt-3.5-turbo"):
         if openai.api_type == 'azure':
-            response = openai.ChatCompletion.create(
+            response = openai.chat.completions.create(
                 engine = model,
                 messages = messages)
         else:
-            response = openai.ChatCompletion.create(
+            response = openai.chat.completions.create(
                 model = model,
                 messages = messages)
 
@@ -130,15 +130,15 @@ class MindWave:
     @catch_exception
     def send_stream_request(self, messages, callback, model="gpt-3.5-turbo"):
         if openai.api_type == 'azure':
-            response = openai.ChatCompletion.create(
-                engine = model,
-                messages = messages,
+            response = openai.chat.completions.create(
+                engine=model,
+                messages=messages,
                 temperature=0,
                 stream=True)
         else:
-            response = openai.ChatCompletion.create(
-                model = model,
-                messages = messages,
+            response = openai.chat.completions.create(
+                model=model,
+                messages=messages,
                 temperature=0,
                 stream=True)
 
@@ -352,13 +352,13 @@ class MindWave:
 
         try:
             if openai.api_type == 'azure':
-                response = openai.ChatCompletion.create(
+                response = openai.chat.completions.create(
                     engine = "gpt-3.5-turbo",
                     messages = messages,
                     temperature=0,
                     stream=True)
             else:
-                response = openai.ChatCompletion.create(
+                response = openai.chat.completions.create(
                     model = "gpt-3.5-turbo",
                     messages = messages,
                     temperature=0,
@@ -375,12 +375,12 @@ class MindWave:
 
     def get_chunk_result(self, chunk):
         delta = chunk.choices[0].delta
-        if not delta:
+        if chunk.choices[0].finish_reason == 'stop':
             return ("end", "")
-        elif "role" in delta:
+        elif delta.role:
             return ("start", "")
-        elif "content" in delta:
-            return ("content", string_to_base64(delta["content"]))
+        elif delta.content:
+            return ("content", string_to_base64(delta.content))
 
     def cleanup(self):
         """Do some cleanup before exit python process."""
